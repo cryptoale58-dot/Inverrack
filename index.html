@@ -678,6 +678,10 @@
         document.getElementById('globalBody').innerHTML = Object.keys(projects).map(n => {
             const p = projects[n];
             if (p.data.length === 0) return '';
+            
+            // --- Lógica de Color por Categoría ---
+            const catColor = colors[p.cat] || '#ffffff'; 
+            
             const p_filtered = filterDataByRange(p.data);
             const valFin = p_filtered[p_filtered.length - 1].price;
             const valIni = p_filtered[0].price;
@@ -685,7 +689,20 @@
             const perf = valIni !== 0 ? (diff / valIni) * 100 : 0;
             const weight = totalEnRango > 0 ? (valFin / totalEnRango) * 100 : 0;
             catTotals[p.cat] = (catTotals[p.cat] || 0) + valFin;
-            return `<tr><td><span class="tag">${p.cat}</span></td><td style="font-weight:600">${n}</td><td class="val-reveal">$${valFin.toLocaleString()}</td><td class="val-reveal" style="color:${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${diff >= 0 ? '+' : ''}$${diff.toLocaleString()}</td><td style="color:${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight:600">${perf.toFixed(1)}%</td><td style="color:var(--text-dim)">${weight.toFixed(1)}%</td></tr>`;
+
+            return `
+                <tr>
+                    <td><span class="tag" style="border-color:${catColor}; color:${catColor}">${p.cat}</span></td>
+                    <td style="font-weight:600; color:${catColor}">${n}</td>
+                    <td class="val-reveal">$${valFin.toLocaleString()}</td>
+                    <td class="val-reveal" style="color:${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                        ${diff >= 0 ? '+' : ''}$${diff.toLocaleString()}
+                    </td>
+                    <td style="color:${diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight:600">
+                        ${perf.toFixed(1)}%
+                    </td>
+                    <td style="color:var(--text-dim)">${weight.toFixed(1)}%</td>
+                </tr>`;
         }).join('');
 
         setTimeout(() => {
