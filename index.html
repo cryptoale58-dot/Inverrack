@@ -562,30 +562,37 @@
     // --- RESTO DE LA LOGICA (PDF, GRÁFICAS, ETC) ---
     async function exportToPDF() {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('p', 'mm', 'a4');
         const date = new Date().toLocaleString();
-        doc.setFillColor(3, 3, 3);
+
+        // --- FONDO Y CABECERA ---
+        doc.setFillColor(10, 10, 10); 
         doc.rect(0, 0, 210, 297, 'F');
+
         doc.setTextColor(0, 255, 163);
         doc.setFontSize(22);
         doc.setFont("helvetica", "bold");
-        doc.text("INVERTRACK PRO | Terminal Report", 20, 30);
-        doc.setTextColor(136, 136, 136);
-        doc.setFontSize(10);
-        doc.text(`Generado: ${date}`, 20, 40);
-        doc.setDrawColor(40, 40, 40);
-        doc.line(20, 45, 190, 45);
-        let yPos = 60;
-        let totalPortfolio = 0, totalInitial = 0;
-        doc.setTextColor(255, 255, 255);
+        doc.text("INVERTRACK PRO", 20, 25);
+        
+        doc.setTextColor(100, 100, 100);
         doc.setFontSize(9);
+        doc.text(`TERMINAL REPORT | ${date}`, 20, 32);
+        doc.setDrawColor(40, 40, 40);
+        doc.line(20, 35, 190, 35);
+
+        // --- TABLA DE ACTIVOS ---
+        let yPos = 50;
+        let totalPortfolio = 0, totalInitial = 0;
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
         doc.text("Activo", 20, yPos);
-        doc.text("Clase", 60, yPos);
-        doc.text("Valor (USD)", 100, yPos);
-        doc.text("Net Profit", 140, yPos);
+        doc.text("Valor (USD)", 85, yPos);
+        doc.text("Net Profit", 130, yPos);
         doc.text("Perf.", 175, yPos);
+        yPos += 5;
+        doc.line(20, yPos, 190, yPos);
         yPos += 10;
-        doc.line(20, yPos - 5, 190, yPos - 5);
 
         for (let name in projects) {
             const p = projects[name];
@@ -596,39 +603,85 @@
                 const performance = initialVal !== 0 ? (profit / initialVal) * 100 : 0;
                 totalPortfolio += currentVal;
                 totalInitial += initialVal;
-                doc.setTextColor(255, 255, 255);
+
+                doc.setTextColor(200, 200, 200);
+                doc.setFontSize(9);
                 doc.text(name, 20, yPos);
-                doc.setTextColor(150, 150, 150);
-                doc.text(p.cat, 60, yPos);
                 doc.setTextColor(255, 255, 255);
-                doc.text(`$${currentVal.toLocaleString()}`, 100, yPos);
+                doc.text(`$${currentVal.toLocaleString()}`, 85, yPos);
+                
                 if (profit >= 0) doc.setTextColor(0, 255, 163); else doc.setTextColor(255, 77, 77);
-                doc.text(`$${profit.toLocaleString()}`, 140, yPos);
+                doc.text(`$${profit.toLocaleString()}`, 130, yPos);
                 doc.text(`${performance.toFixed(1)}%`, 175, yPos);
-                yPos += 10;
-                if (yPos > 270) { doc.addPage(); doc.setFillColor(3,3,3); doc.rect(0,0,210,297,'F'); yPos = 30; }
+                
+                yPos += 8;
+                if (yPos > 270) { 
+                    doc.addPage(); 
+                    doc.setFillColor(10,10,10); 
+                    doc.rect(0,0,210,297,'F'); 
+                    yPos = 30; 
+                }
             }
         }
+
+        // --- RESUMEN DE CARTERA ---
         yPos += 10;
         doc.setDrawColor(0, 255, 163);
         doc.line(20, yPos, 190, yPos);
-        yPos += 15;
+        yPos += 12;
+
         const globalProfit = totalPortfolio - totalInitial;
         const globalRoi = totalInitial !== 0 ? (globalProfit / totalInitial) * 100 : 0;
         doc.setTextColor(255, 255, 255);
-        doc.text("RESUMEN DE CARTERA", 20, yPos);
-        yPos += 10;
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Valor Total: $${totalPortfolio.toLocaleString()}`, 20, yPos);
-        doc.setTextColor(globalProfit >= 0 ? 0 : 255, globalProfit >= 0 ? 255 : 77, globalProfit >= 0 ? 163 : 77);
-        doc.text(`Ganancia Neta: $${globalProfit.toLocaleString()}`, 90, yPos);
-        doc.text(`Performance Total: ${globalRoi.toFixed(2)}%`, 150, yPos);
-        doc.save(`Reporte-InverTrack-${Date.now()}.pdf`);
-    }
+        doc.setFontSize(11);
+        doc.text("TOTAL CARTERA:", 20, yPos);
+        doc.text(`$${totalPortfolio.toLocaleString()}`, 60, yPos);
+        if (globalProfit >= 0) doc.setTextColor(0, 255, 163); else doc.setTextColor(255, 77, 77);
+        doc.text(`Profit: $${globalProfit.toLocaleString()}`, 110, yPos);
+        doc.text(`ROI: ${globalRoi.toFixed(2)}%`, 160, yPos);
 
-    function save() { 
-        localStorage.setItem('invertrack_v15', JSON.stringify(projects)); 
-        localStorage.setItem('invertrack_futures_v2', JSON.stringify(futureProjects));
+        // --- SECCIÓN DE GRÁFICA (ALTA DENSIDAD) ---
+        yPos += 20;
+        if (yPos > 210) { 
+            doc.addPage(); 
+            doc.setFillColor(10,10,10); 
+            doc.rect(0,0,210,297,'F'); 
+            yPos = 30; 
+        }
+
+        doc.setTextColor(0, 255, 163);
+        doc.setFontSize(13);
+        doc.text(current ? `EVOLUCIÓN: ${current.toUpperCase()}` : "EVOLUCIÓN GLOBAL DE CARTERA", 20, yPos);
+        yPos += 10;
+
+        const mainChartId = current ? 'detailChart' : 'globalChart';
+        const chartInstance = current ? detChart : gChart;
+
+        if (chartInstance) {
+            // --- SECUENCIA DE CAPTURA HD ---
+            // 1. Aumentamos la resolución interna del gráfico
+            chartInstance.options.devicePixelRatio = 4; // Super resolución
+            chartInstance.resize(); // Forzar redibujado
+            chartInstance.update('none'); // Sin animaciones
+
+            const canvasHD = document.getElementById(mainChartId);
+            const ratio = canvasHD.height / canvasHD.width;
+            const targetWidth = 175;
+            const targetHeight = targetWidth * ratio;
+            
+            // 2. Extraemos la imagen con compresión mínima
+            const imgData = canvasHD.toDataURL("image/png", 1.0);
+            
+            // 3. Insertamos en el PDF
+            doc.addImage(imgData, 'PNG', 18, yPos, targetWidth, targetHeight, undefined, 'SLOW');
+
+            // 4. Restauramos el gráfico para que se vea bien en web otra vez
+            chartInstance.options.devicePixelRatio = window.devicePixelRatio || 1;
+            chartInstance.resize();
+            chartInstance.update();
+        }
+
+        doc.save(`Reporte-InverTrack-Pro-HD.pdf`);
     }
 
     function hideAll() {
