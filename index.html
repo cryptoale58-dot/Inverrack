@@ -228,6 +228,9 @@
     <div class="nav-item" onclick="showCompound()" id="btnCompound">
         <i data-lucide="line-chart" size="18"></i> <span>Interés Compuesto</span>
     </div>
+    <div id="btnSettings" class="nav-item" onclick="showSettings()" style="background:none; border:none; width:100%; display:flex; align-items:center; gap:12px; cursor:pointer;">
+        <i data-lucide="settings" size="18"></i><span>Exportar/Importar</span>
+    </div>
 
     <div style="flex-grow: 1; overflow-y: auto; margin-top: 1.5rem;">
         <div class="form-label" style="padding-left: 12px; margin-bottom: 10px;">Assets</div>
@@ -235,12 +238,6 @@
     </div>
 
     <div class="form-section">
-        <span class="form-label">Data Management</span>
-        <div class="backup-controls">
-            <button class="btn-backup" onclick="exportData()"><i data-lucide="download" size="14"></i> Export</button>
-            <button class="btn-backup" onclick="document.getElementById('fileInput').click()"><i data-lucide="upload" size="14"></i> Import</button>
-            <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importData(event)">
-        </div>
         <span class="form-label" style="margin-top:10px">Add Asset</span>
         <input type="text" id="pName" placeholder="Asset name...">
         <select id="pCat">
@@ -409,6 +406,42 @@
             <div id="futureList"></div>
         </div>
 
+        <div id="settings-view" style="display:none">
+            <h1 style="font-size: 2.2rem; margin:0 0 0.5rem 0; font-weight: 800; letter-spacing: -1px;">Sistema</h1>
+            <p style="color:var(--text-dim); margin-bottom: 2rem; font-family: 'JetBrains Mono'; font-size: 0.9rem;">DATA MANAGEMENT TERMINAL_v15</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px">
+                            <i data-lucide="database" style="color:var(--accent-green)"></i>
+                            <h3 style="margin:0">Respaldar Datos</h3>
+                        </div>
+                        <p style="color:var(--text-dim); font-size:0.9rem; line-height:1.6">Genera un archivo JSON con todos los registros de tus activos y proyectos futuros para guardarlo localmente.</p>
+                    </div>
+                    <button onclick="exportData()" class="btn-deploy" style="width:100%; margin-top:20px; background: rgba(0, 255, 163, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green);">
+                        EXPORTAR .JSON
+                    </button>
+                </div>
+
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px">
+                            <i data-lucide="refresh-cw" style="color:var(--accent-yellow)"></i>
+                            <h3 style="margin:0">Restaurar Sistema</h3>
+                        </div>
+                        <p style="color:var(--text-dim); font-size:0.9rem; line-height:1.6">Carga un archivo de respaldo previo. <span style="color:var(--accent-red)">Advertencia: Esto sobrescribirá los datos actuales de la sesión.</span></p>
+                    </div>
+                    <div style="margin-top:20px">
+                        <input type="file" id="importFile" onchange="importData(event)" style="display: none;">
+                        <button onclick="document.getElementById('importFile').click()" class="btn-deploy" style="width:100%; margin:0;">
+                            SELECCIONAR ARCHIVO
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="compound-view" style="display:none">
             <h1 style="font-size: 2.2rem; margin:0 0 1rem 0; font-weight: 800; letter-spacing: -1px;">Calculadora Proyectiva</h1>
             
@@ -552,6 +585,34 @@
         }
     }
 
+    function hideAll() {
+        // 1. Ocultar todos los contenedores de vista
+        document.getElementById('global-view').style.display = 'none';
+        document.getElementById('detail-view').style.display = 'none';
+        document.getElementById('future-view').style.display = 'none';
+        document.getElementById('compound-view').style.display = 'none';
+        document.getElementById('settings-view').style.display = 'none'; // Nueva vista de export/import
+
+        // 2. Quitar el estado "active" de todos los botones de navegación
+        const navButtons = ['btnGlobal', 'btnFuture', 'btnCompound', 'btnSettings'];
+        navButtons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.classList.remove('active');
+        });
+
+        // 3. Resetear el activo actual
+        current = null;
+    }
+
+    function showSettings() {
+        hideAll();
+        document.getElementById('settings-view').style.display = 'block';
+        // Si tienes un botón en el nav con este ID, le pondrá el estilo activo
+        const btn = document.getElementById('btnSettings');
+        if(btn) btn.classList.add('active');
+        if(window.lucide) lucide.createIcons();
+    }
+
     function deleteFuture(index) {
         if(confirm('¿Eliminar proyecto futuro?')) {
             futureProjects.splice(index, 1);
@@ -689,16 +750,7 @@
         localStorage.setItem('invertrack_futures_v2', JSON.stringify(futureProjects));
     }
 
-    function hideAll() {
-        document.getElementById('global-view').style.display = 'none';
-        document.getElementById('detail-view').style.display = 'none';
-        document.getElementById('future-view').style.display = 'none';
-        document.getElementById('compound-view').style.display = 'none';
-        document.getElementById('btnGlobal').classList.remove('active');
-        document.getElementById('btnFuture').classList.remove('active');
-        document.getElementById('btnCompound').classList.remove('active');
-        current = null;
-    }
+    
 
     function showGlobal() {
         hideAll();
